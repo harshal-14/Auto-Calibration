@@ -1,0 +1,19 @@
+Initially estimated K matrix : 
+ [[ 2.056107e+03 -1.017000e+00  7.616550e+02]
+ [ 0.000000e+00  2.040504e+03  1.351308e+03]
+ [ 0.000000e+00  0.000000e+00  1.000000e+00]]
+
+Distortion Coordinates before optimization: [0 0]
+Projection error before optimization : 837.6212
+
+
+optimized K matrix : 
+ [[ 1.785430e+03 -1.017000e+00  1.073608e+03]
+ [ 0.000000e+00  1.729229e+03  8.316140e+02]
+ [ 0.000000e+00  0.000000e+00  1.000000e+00]]
+
+Distortion Coordinates after optimization: [0. 0.]
+Projection error after optimization : 837.6212
+
+
+##################################################################
