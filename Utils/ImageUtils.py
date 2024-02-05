@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 import os
+import sys
+
+# Don't generate pyc codes
+sys.dont_write_bytecode = True
 
 class ImageUtils:
     def __init__(self):
@@ -57,8 +61,8 @@ class ImageUtils:
                 os.makedirs(rectified_folder)
 
             for m, m_ in zip(np.int32(img_c), np.int32(_img_c)):
-                cv2.circle(img, tuple(m), 15, (0, 0, 255), -1)
-                cv2.circle(warped_img, tuple(m_), 15, (255, 0, 0), -1)
+                cv2.circle(img, tuple(m), 5, (0, 0, 255), -1)
+                cv2.circle(warped_img, tuple(m_), 5, (255, 0, 0), -1)
 
             cv2.imwrite(os.path.join(save_path, 'im_' + str(i) + '.jpg'), img)
             cv2.imwrite(os.path.join(rectified_folder, 'recIm_' + str(i) + '.jpg'), warped_img)

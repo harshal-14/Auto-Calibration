@@ -3,6 +3,10 @@ from scipy import optimize
 import cv2
 import os
 from Utils.ImageUtils import *
+import sys
+
+# Don't generate pyc codes
+sys.dont_write_bytecode = True
 
 class MathUtils:
     def __init__(self, image_utils):
@@ -76,24 +80,53 @@ class MathUtils:
 
         return np.array(m_i_)
 
-    def estimateReprojectionError(self, K, kC, data, is_cv2=False):
+    # def estimateReprojectionError(self, K, kC, data, is_cv2=False):
+    #     M_pts, m_pts, Extrinsics = data
+    #     error = 0
+
+    #     for i, RT in enumerate(Extrinsics):
+    #         M_i = M_pts[i]
+    #         m_i = m_pts[i]
+
+    #         R, t = self.image_utils.splitRT(RT)
+    #         ones = np.ones(len(m_i)).reshape(-1, 1)
+
+    #         if not is_cv2:
+    #             m_i_ = self.project_coords(M_i, RT, K, kC)
+    #         else:
+    #             kC = (kC[0], kC[1], 0, 0)
+    #             M_i = np.column_stack((M_i, ones))
+    #             m_i_, _ = cv2.projectPoints(M_i, R, t, K, kC)
+
+    #         error += np.sum(np.linalg.norm(m_i - m_i_.squeeze(), ord=2))
+
+    #     return error
+
+    def estimate_reprojection_error(self,K,kC, data, iscv2):
         M_pts, m_pts, Extrinsics = data
-        error = 0
+        errors = []
+        for i,RT in enumerate(Extrinsics):
+            e = self.reProjectionError(M_pts[i], m_pts[i], K, RT, kC, iscv2 = iscv2)
+            errors.append(e) 
+        return np.mean(errors)
 
-        for i, RT in enumerate(Extrinsics):
-            M_i = M_pts[i]
-            m_i = m_pts[i]
+    def reProjectionError(self,M_i, m_i, K, RT, kC, iscv2):
+        R,t = self.image_utils.splitRT(RT)
+        ones = np.ones(len(m_i)).reshape(-1,1)
+        zeros=  np.zeros(len(m_i)).reshape(-1,1)
 
-            R, t = self.image_utils.splitRT(RT)
-            ones = np.ones(len(m_i)).reshape(-1, 1)
+        if iscv2 == False:
+            m_i_ = self.project_coords(M_i, RT, K, kC)
+        else:
+            kC = (kC[0],kC[1], 0, 0)
+            # make image and world points as homogenous coordinates
+            M_i = np.column_stack((M_i,ones)) 
+            ## reprojected points
+            m_i_,_ = cv2.projectPoints(M_i, R, t, K, kC)
 
-            if not is_cv2:
-                m_i_ = self.project_coords(M_i, RT, K, kC)
-            else:
-                kC = (kC[0], kC[1], 0, 0)
-                M_i = np.column_stack((M_i, ones))
-                m_i_, _ = cv2.projectPoints(M_i, R, t, K, kC)
-
-            error += np.sum(np.linalg.norm(m_i - m_i_.squeeze(), ord=2))
-
-        return error
+        error = []            
+        for m, m_ in  zip(m_i, m_i_.squeeze()):
+            e_ = np.linalg.norm(m - m_, ord=2) # compute L2 norm
+            error.append(e_)
+            
+        return np.mean(error)
