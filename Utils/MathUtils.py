@@ -80,28 +80,6 @@ class MathUtils:
 
         return np.array(m_i_)
 
-    # def estimateReprojectionError(self, K, kC, data, is_cv2=False):
-    #     M_pts, m_pts, Extrinsics = data
-    #     error = 0
-
-    #     for i, RT in enumerate(Extrinsics):
-    #         M_i = M_pts[i]
-    #         m_i = m_pts[i]
-
-    #         R, t = self.image_utils.splitRT(RT)
-    #         ones = np.ones(len(m_i)).reshape(-1, 1)
-
-    #         if not is_cv2:
-    #             m_i_ = self.project_coords(M_i, RT, K, kC)
-    #         else:
-    #             kC = (kC[0], kC[1], 0, 0)
-    #             M_i = np.column_stack((M_i, ones))
-    #             m_i_, _ = cv2.projectPoints(M_i, R, t, K, kC)
-
-    #         error += np.sum(np.linalg.norm(m_i - m_i_.squeeze(), ord=2))
-
-    #     return error
-
     def estimate_reprojection_error(self,K,kC, data, iscv2):
         M_pts, m_pts, Extrinsics = data
         errors = []

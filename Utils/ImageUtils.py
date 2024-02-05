@@ -61,10 +61,11 @@ class ImageUtils:
                 os.makedirs(rectified_folder)
 
             for m, m_ in zip(np.int32(img_c), np.int32(_img_c)):
-                cv2.circle(img, tuple(m), 5, (0, 0, 255), -1)
-                cv2.circle(warped_img, tuple(m_), 5, (255, 0, 0), -1)
+                # cv2.circle(img, tuple(m), 5, (0, 0, 255), -1)
+                cv2.drawChessboardCorners(img, (9, 6), img_c, True)
+                cv2.circle(warped_img, tuple(m_), 10, (0, 0, 255), -1)
 
-            cv2.imwrite(os.path.join(save_path, 'im_' + str(i) + '.jpg'), img)
-            cv2.imwrite(os.path.join(rectified_folder, 'recIm_' + str(i) + '.jpg'), warped_img)
+            cv2.imwrite(os.path.join(save_path, 'Img_' + str(i) + '.jpg'), img)
+            cv2.imwrite(os.path.join(rectified_folder, 'rectified_Im_' + str(i) + '.jpg'), warped_img)
 
         return rectified_imgs

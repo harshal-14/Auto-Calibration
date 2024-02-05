@@ -39,11 +39,11 @@ class Calibration:
         return self.math_utils.estimate_reprojection_error(K, kC, (M_pts, m_pts, Extrinsics), is_cv2)
 
     def optimize_parameters(self, init_params, M_pts, m_pts, Extrinsics):
-        out = optimize.least_squares(fun=self.loss, x0=init_params, method="lm", args=[M_pts, m_pts, Extrinsics])
+        out = optimize.least_squares(fun=self.Loss_Fn, x0=init_params, method="lm", args=[M_pts, m_pts, Extrinsics])
         optimal_params = out.x
         return optimal_params
 
-    def loss(self, params, M_pts, m_pts, Extrinsics):
+    def Loss_Fn(self, params, M_pts, m_pts, Extrinsics):
         kC = (params[-2], params[-1])
         K = self.math_utils.construct_K(params)
         error = []
@@ -57,7 +57,6 @@ class Calibration:
     def geometric_error(self, m_i, M_i, K, RT, kC, is_cv2=False):
         R, t = self.image_utils.splitRT(RT)
         ones = np.ones(len(m_i)).reshape(-1, 1)
-        # zeros = np.zeros(len(m_i)).reshape(-1, 1)
 
         if not is_cv2:
             m_i_ = self.math_utils.project_coords(M_i, RT, K, kC)
@@ -66,7 +65,6 @@ class Calibration:
             M_i = np.column_stack((M_i, ones))
             m_i_, _ = cv2.projectPoints(M_i, R, t, K, kC)
 
-        # error = np.sum(np.linalg.norm(m_i - m_i_.squeeze(), ord=2))
         error = []
         for m, m_ in zip(m_i, m_i_.squeeze()):
             e_ = np.linalg.norm(m - m_, ord=2)
@@ -86,12 +84,9 @@ class Calibration:
         # print('Distortion Coordinates before optimization:', kC)
         print(f'Distortion Coordinates(kC) before optimization: {kC}')
         reprojection_error = self.estimate_reprojection_error(K_init, kC, M_pts, m_pts, Extrinsics_old, False)
-        # reprojection_error2 = self.estimate_reprojection_error(K_init, kC, M_pts, m_pts, Extrinsics_old, True)
-        # print("Projection error before optimization:", reprojection_error2, "(in-built)")
-        # print("Projection error before optimization:", reprojection_error)
         print(f'Projection error before optimization: {reprojection_error}', '(without cv2)')
-        # print('Begin Optimization... This takes a while')
-        print(f'Initiating Optimization...')
+        # print(f'Initiating Optimization...')
+        print(f'K before optimization: {K_init}')
 
         alpha, beta, gamma = K_init[0, 0], K_init[1, 1], K_init[0, 1]
         u0, v0 = K_init[0, 2], K_init[1, 2]
@@ -124,7 +119,7 @@ class Calibration:
         # print("Projection error after optimization:", reprojection_error2, "(in-built)")
         # print("Projection error after optimization:", reprojection_error)
         print(f'Projection error after optimization: {reprojection_error}', '(without cv2)')
-
+        print(f'K after optimization: {K}')
         self.image_utils.rectify(im_paths, np.array(m_pts), np.array(m_pts_), self.save_path)
         print('Done calibration')
 
