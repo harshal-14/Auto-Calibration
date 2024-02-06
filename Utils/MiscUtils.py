@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-
+#Refactor this portion of code too
 class MiscUtils:
     def __init__(self, image_utils, math_utils):
         self.image_utils = image_utils
@@ -12,12 +12,11 @@ class MiscUtils:
         error = []
 
         for i, RT in enumerate(Extrinsics):
-            e = self.geometric_error(m_pts[i], M_pts[i], K, RT, kC, is_cv2=False)
+            e = self.calibration_error(m_pts[i], M_pts[i], K, RT, kC, is_cv2=False)
             error = np.hstack((error, e))
-
         return error
 
-    def geometric_error(self, m_i, M_i, K, RT, kC, is_cv2=False):
+    def calibration_error(self, m_i, M_i, K, RT, kC, is_cv2=False):
         R, t = self.image_utils.splitRT(RT)
         ones = np.ones(len(m_i)).reshape(-1, 1)
 

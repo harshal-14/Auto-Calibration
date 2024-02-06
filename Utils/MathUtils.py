@@ -80,31 +80,28 @@ class MathUtils:
 
         return np.array(m_i_)
 
-    def estimate_reprojection_error(self,K,kC, data, iscv2):
+    def estimate_reprojection_error(self,K,kC, data, use_cv2):
         M_pts, m_pts, Extrinsics = data
         errors = []
         for i,RT in enumerate(Extrinsics):
-            e = self.reProjectionError(M_pts[i], m_pts[i], K, RT, kC, iscv2 = iscv2)
-            errors.append(e) 
+            e = self.reprojection_error(M_pts[i], m_pts[i], K, RT, kC, use_cv2 = use_cv2)
+            errors.append(e)
         return np.mean(errors)
 
-    def reProjectionError(self,M_i, m_i, K, RT, kC, iscv2):
+    def reprojection_error(self,M_i, m_i, K, RT, kC, use_cv2):
         R,t = self.image_utils.splitRT(RT)
         ones = np.ones(len(m_i)).reshape(-1,1)
         zeros=  np.zeros(len(m_i)).reshape(-1,1)
 
-        if iscv2 == False:
+        if use_cv2 == False:
             m_i_ = self.project_coords(M_i, RT, K, kC)
         else:
             kC = (kC[0],kC[1], 0, 0)
-            # make image and world points as homogenous coordinates
             M_i = np.column_stack((M_i,ones)) 
-            ## reprojected points
             m_i_,_ = cv2.projectPoints(M_i, R, t, K, kC)
 
         error = []            
         for m, m_ in  zip(m_i, m_i_.squeeze()):
-            e_ = np.linalg.norm(m - m_, ord=2) # compute L2 norm
+            e_ = np.linalg.norm(m - m_, ord=2)
             error.append(e_)
-            
         return np.mean(error)

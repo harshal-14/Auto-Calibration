@@ -37,8 +37,8 @@ class Calibration:
         K_init = self.math_utils.get_intrinsic_params(H_all)
         return K_init
 
-    def estimate_reprojection_error(self, K, kC, M_pts, m_pts, Extrinsics, is_cv2):
-        return self.math_utils.estimate_reprojection_error(K, kC, (M_pts, m_pts, Extrinsics), is_cv2)
+    def estimate_reprojection_error(self, K, kC, M_pts, m_pts, Extrinsics, use_cv2):
+        return self.math_utils.estimate_reprojection_error(K, kC, (M_pts, m_pts, Extrinsics), use_cv2)
 
     def optimize_parameters(self, init_params, M_pts, m_pts, Extrinsics):
         out = optimize.least_squares(fun=self.misc_utils.loss_fn, x0=init_params, method="lm", args=[M_pts, m_pts, Extrinsics])
@@ -48,36 +48,8 @@ class Calibration:
     def loss_fn(self, params, M_pts, m_pts, Extrinsics):
         return self.misc_utils.loss_fn(params, M_pts, m_pts, Extrinsics)
     
-    def geometric_error(self, m_i, M_i, K, RT, kC, is_cv2=False):
-        return self.misc_utils.geometric_error(m_i, M_i, K, RT, kC, is_cv2)
-    
-   # def Loss_Fn(self, params, M_pts, m_pts, Extrinsics):
-    #     kC = (params[-2], params[-1])
-    #     K = self.math_utils.construct_K(params)
-    #     error = []
-
-    #     for i, RT in enumerate(Extrinsics):
-    #         e = self.geometric_error(m_pts[i], M_pts[i], K, RT, kC, is_cv2=False)
-    #         error = np.hstack((error, e))
-
-    #     return error
-
-    # def geometric_error(self, m_i, M_i, K, RT, kC, is_cv2=False):
-    #     R, t = self.image_utils.splitRT(RT)
-    #     ones = np.ones(len(m_i)).reshape(-1, 1)
-
-    #     if not is_cv2:
-    #         m_i_ = self.math_utils.project_coords(M_i, RT, K, kC)
-    #     else:
-    #         kC = (kC[0], kC[1], 0, 0)
-    #         M_i = np.column_stack((M_i, ones))
-    #         m_i_, _ = cv2.projectPoints(M_i, R, t, K, kC)
-
-    #     error = []
-    #     for m, m_ in zip(m_i, m_i_.squeeze()):
-    #         e_ = np.linalg.norm(m - m_, ord=2)
-    #         error.append(e_)
-    #     return np.sum(error)
+    def calibration_error(self, m_i, M_i, K, RT, kC, use_cv2=False):
+        return self.misc_utils.calibration_error(m_i, M_i, K, RT, kC, use_cv2)
 
     def main(self):
         M_pts, m_pts, H_all, im_paths = self.load_images_and_homography()
@@ -91,7 +63,7 @@ class Calibration:
         kC = (0, 0)
         print(f'Distortion Coordinates(kC) before optimization: {kC}')
         reprojection_error = self.estimate_reprojection_error(K_init, kC, M_pts, m_pts, Extrinsics_old, False)
-        print(f'Projection error before optimization: {reprojection_error}', '(without cv2)')
+        print(f'Projection error before optimization: {reprojection_error}', '(without using cv2 function)')
         print(f'Initiating Optimization...')
         print(f'K before optimization: {K_init}')
 
