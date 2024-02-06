@@ -1,91 +1,50 @@
-import numpy as np
 import cv2
-import copy
 import glob
+import os
+import numpy as np
+from scipy import optimize
+from Utils.ImageUtils import *
+from Utils.MathUtils import *
 import argparse
+import tqdm
+import sys
 
-class CameraCalibration:
-    def __init__(self, images):
-        self.images = copy.deepcopy(images)
-        self.H_matrices = []
-        self.camera_coordinates = []
-        self.world_points = self.compute_world_points()
+# Don't generate pyc codes
+sys.dont_write_bytecode = True
 
-    def compute_world_points(self, rows=9, columns=6, block_size=21.5):
-        x_world, y_world = np.meshgrid(range(rows), range(columns))
-        world_points = np.array(np.vstack((x_world.flatten(), y_world.flatten())).T * block_size, dtype=np.float32)
-        return world_points
+class Calibration:
+    def __init__(self, data_path, save_path):
+        self.data_path = data_path
+        self.save_path = save_path
+        self.image_utils = ImageUtils()
+        self.math_utils = MathUtils(self.image_utils)
 
-    def find_homography_matrices(self, rows=9, columns=6):
-        for img in self.images:
-            gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            is_corner, img_corners = cv2.findChessboardCorners(gray_img, (rows, columns), None)
+    def load_images_and_homography(self):
+        im_paths = sorted(glob.glob(self.data_path + '*.jpg'))
+        M_pts, m_pts, H_all = [], [], []
 
-            if is_corner:
-                img_corners = np.reshape(img_corners, (-1, 2))
-                H = self.compute_homography_matrix(self.world_points, img_corners)
-                # H = cv2.findHomography(self.world_points, img_corners)[0]
-                self.H_matrices.append(H)
-                self.camera_coordinates.append(img_corners)
-                draw = cv2.drawChessboardCorners(img, (rows, columns), img_corners, True)
-                # cv2.imshow('img', draw)
-                # cv2.waitKey(0)
+        for im_path in im_paths:
+            M, m, H = self.image_utils.get_homography(im_path)
+            M_pts.append(M)
+            m_pts.append(m)
+            H_all.append(H)
 
-    def construct_v(self, H, i, j):
-        H = H.T
-        v_ij = np.array([
-            H[i][0] * H[j][0],
-            H[i][0] * H[j][1] + H[i][1] * H[j][0],
-            H[i][1] * H[j][1],
-            H[i][2] * H[j][0] + H[i][0] * H[j][2],
-            H[i][2] * H[j][1] + H[i][1] * H[j][2],
-            H[i][2] * H[j][2]
-        ])
-        return v_ij.T
-
-    def compute_b_matrix(self):
-        V = []
-
-        for H in self.H_matrices:
-            v12 = self.construct_v(H, 0, 1).T
-            v11_v22 = (self.construct_v(H, 0, 0) - self.construct_v(H, 1, 1)).T
-            V.append(v12)
-            V.append(v11_v22)
-
-        V = np.array(V)
-        _, _, Vh = np.linalg.svd(V, full_matrices=True)
-        b = Vh.T[:, -1]
-
-        return b
-             
-    def compute_homography_matrix(self, src_points, dst_points):
-        A_kernel = []
-        for i in range(len(src_points)):
-            x, y = src_points[i]
-            u, v = dst_points[i]
-            A_kernel.append([-x, -y, -1, 0, 0, 0, u * x, u * y, u])
-            A_kernel.append([0, 0, 0, -x, -y, -1, v * x, v * y, v])
+        return M_pts, m_pts, H_all, im_paths
+    
+    def initial_calibration(self, H_all):
+        K_init = self.math_utils.get_intrinsic_params(H_all)
+        return K_init
+    
+    def estimate_reprojection_error(self, K, kC, M_pts, m_pts, Extrinsics, is_cv2):
+        return self.math_utils.estimate_reprojection_error(K, kC, (M_pts, m_pts, Extrinsics), is_cv2)
+    
+    def optimize_parameters(self, init_params, M_pts, m_pts, Extrinsics):
+        optimized_x = optimize.least_squares(fun=self.Loss_Fn, x0=init_params, method="lm", args=[M_pts, m_pts, Extrinsics])
+        optimal_params = optimized_x.x
+        return optimal_params
+    
+    def Loss_Fn(self, params, M_pts, m_pts, Extrinsics):
+        kC = (params[-2], params[-1])
+        K = self.math_utils.construct_K(params)
+        error = []
         
-        A_kernel = np.array(A_kernel)
-        _, _, Vh = np.linalg.svd(A_kernel, full_matrices=True)
-        H = Vh[-1, :].reshape((3, 3))
-        
-        return H / H[2, 2]
-
-def main():
-
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--Imagepath", default="/home/lucifer/WPI/Spring_courses/CV/hbhat_hw1/Data/Calibration_Imgs/")
-    args= argparser.parse_args()
-    path = args.path
-
-    images = [cv2.imread(file) for file in glob.glob(path + "/*.jpg")]
-
-    calibration = CameraCalibration(images)
-    calibration.find_homography_matrices()
-    b = calibration.compute_b_matrix()
-    print(b)
-    # A = calibration.compute_camera_intrinsics(b)
-
-if __name__ == '__main__':
-    main()

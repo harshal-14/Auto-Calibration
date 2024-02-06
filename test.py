@@ -5,6 +5,7 @@ import numpy as np
 from scipy import optimize
 from Utils.ImageUtils import *
 from Utils.MathUtils import *
+from Utils.MiscUtils import *
 import argparse
 import tqdm
 import sys
@@ -18,6 +19,7 @@ class Calibration:
         self.save_path = save_path
         self.image_utils = ImageUtils()
         self.math_utils = MathUtils(self.image_utils)
+        self.misc_utils = MiscUtils(self.image_utils, self.math_utils)
 
     def load_images_and_homography(self):
         im_paths = sorted(glob.glob(self.data_path + '*.jpg'))
@@ -39,37 +41,43 @@ class Calibration:
         return self.math_utils.estimate_reprojection_error(K, kC, (M_pts, m_pts, Extrinsics), is_cv2)
 
     def optimize_parameters(self, init_params, M_pts, m_pts, Extrinsics):
-        out = optimize.least_squares(fun=self.Loss_Fn, x0=init_params, method="lm", args=[M_pts, m_pts, Extrinsics])
+        out = optimize.least_squares(fun=self.misc_utils.loss_fn, x0=init_params, method="lm", args=[M_pts, m_pts, Extrinsics])
         optimal_params = out.x
         return optimal_params
 
-    def Loss_Fn(self, params, M_pts, m_pts, Extrinsics):
-        kC = (params[-2], params[-1])
-        K = self.math_utils.construct_K(params)
-        error = []
-
-        for i, RT in enumerate(Extrinsics):
-            e = self.geometric_error(m_pts[i], M_pts[i], K, RT, kC, is_cv2=False)
-            error = np.hstack((error, e))
-
-        return error
-
+    def loss_fn(self, params, M_pts, m_pts, Extrinsics):
+        return self.misc_utils.loss_fn(params, M_pts, m_pts, Extrinsics)
+    
     def geometric_error(self, m_i, M_i, K, RT, kC, is_cv2=False):
-        R, t = self.image_utils.splitRT(RT)
-        ones = np.ones(len(m_i)).reshape(-1, 1)
+        return self.misc_utils.geometric_error(m_i, M_i, K, RT, kC, is_cv2)
+    
+   # def Loss_Fn(self, params, M_pts, m_pts, Extrinsics):
+    #     kC = (params[-2], params[-1])
+    #     K = self.math_utils.construct_K(params)
+    #     error = []
 
-        if not is_cv2:
-            m_i_ = self.math_utils.project_coords(M_i, RT, K, kC)
-        else:
-            kC = (kC[0], kC[1], 0, 0)
-            M_i = np.column_stack((M_i, ones))
-            m_i_, _ = cv2.projectPoints(M_i, R, t, K, kC)
+    #     for i, RT in enumerate(Extrinsics):
+    #         e = self.geometric_error(m_pts[i], M_pts[i], K, RT, kC, is_cv2=False)
+    #         error = np.hstack((error, e))
 
-        error = []
-        for m, m_ in zip(m_i, m_i_.squeeze()):
-            e_ = np.linalg.norm(m - m_, ord=2)
-            error.append(e_)
-        return np.sum(error)
+    #     return error
+
+    # def geometric_error(self, m_i, M_i, K, RT, kC, is_cv2=False):
+    #     R, t = self.image_utils.splitRT(RT)
+    #     ones = np.ones(len(m_i)).reshape(-1, 1)
+
+    #     if not is_cv2:
+    #         m_i_ = self.math_utils.project_coords(M_i, RT, K, kC)
+    #     else:
+    #         kC = (kC[0], kC[1], 0, 0)
+    #         M_i = np.column_stack((M_i, ones))
+    #         m_i_, _ = cv2.projectPoints(M_i, R, t, K, kC)
+
+    #     error = []
+    #     for m, m_ in zip(m_i, m_i_.squeeze()):
+    #         e_ = np.linalg.norm(m - m_, ord=2)
+    #         error.append(e_)
+    #     return np.sum(error)
 
     def main(self):
         M_pts, m_pts, H_all, im_paths = self.load_images_and_homography()
@@ -81,11 +89,10 @@ class Calibration:
             Extrinsics_old.append(RT)
 
         kC = (0, 0)
-        # print('Distortion Coordinates before optimization:', kC)
         print(f'Distortion Coordinates(kC) before optimization: {kC}')
         reprojection_error = self.estimate_reprojection_error(K_init, kC, M_pts, m_pts, Extrinsics_old, False)
         print(f'Projection error before optimization: {reprojection_error}', '(without cv2)')
-        # print(f'Initiating Optimization...')
+        print(f'Initiating Optimization...')
         print(f'K before optimization: {K_init}')
 
         alpha, beta, gamma = K_init[0, 0], K_init[1, 1], K_init[0, 1]
@@ -121,7 +128,7 @@ class Calibration:
         print(f'Projection error after optimization: {reprojection_error}', '(without cv2)')
         print(f'K after optimization: {K}')
         self.image_utils.rectify(im_paths, np.array(m_pts), np.array(m_pts_), self.save_path)
-        print('Done calibration')
+        print(f'Done! Rectified images saved at: {self.save_path}')
 
 
 if __name__ == '__main__':
