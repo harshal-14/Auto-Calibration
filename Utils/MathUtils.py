@@ -10,9 +10,21 @@ sys.dont_write_bytecode = True
 
 class MathUtils:
     def __init__(self, image_utils):
+        '''
+        Constructor for MathUtils class
+        '''
         self.image_utils = image_utils
 
     def construct_v(self, H, i, j):
+        '''
+        Construct v_ij from H matrix from Zhang's paper. This is used to estimate intrinsic parameters
+        Input:
+            H: Homography matrix
+            i: ith row
+            j: jth row
+        Output:
+            v_ij: v_ij vector
+        '''
         i, j = i-1, j-1
         v_ij = np.array([H[0, i]*H[0, j],
                          H[0, i]*H[1, j] + H[1, i]*H[0, j],
@@ -23,12 +35,27 @@ class MathUtils:
         return v_ij
 
     def construct_K(self, params):
+        '''
+        Construct K matrix from intrinsic parameters.
+        Input:
+            params: Intrinsic parameters
+        Output:
+            K: Intrinsic matrix
+        '''
         alpha, beta, gamma, u0, v0, _, _ = params
         return np.array([[alpha, gamma, u0],
                          [0, beta, v0],
                          [0, 0, 1]], dtype=np.float64)
 
     def get_intrinsic_params(self, H_all):
+        '''
+        Estimate intrinsic parameters from homography matrix
+        Input:
+            H_all: Homography matrices
+        Output:
+            K: Intrinsic matrix
+        '''
+        
         V = []
 
         for h in H_all:
@@ -51,6 +78,9 @@ class MathUtils:
         return K
 
     def get_extrinsic_params(self, K, H):
+        '''
+        Estimate extrinsic parameters from intrinsic parameters and homography matrix. Zhang's method, section 3.1
+        '''
         h1, h2, h3 = H.T
         inv_K = np.linalg.inv(K)
         lambda_ = np.linalg.norm(inv_K.dot(h1), ord=2)
@@ -81,6 +111,16 @@ class MathUtils:
         return np.array(m_i_)
 
     def estimate_reprojection_error(self,K,kC, data, use_cv2):
+        '''
+        Estimate reprojection error. This is used to evaluate the performance of the calibration.
+        Input:
+            K: Intrinsic matrix
+            kC: Distortion coefficients
+            data: Tuple containing world and image coordinates and extrinsic parameters
+            use_cv2: Use cv2 function to estimate reprojection error
+        Output:
+            error: Reprojection error
+        '''
         M_pts, m_pts, Extrinsics = data
         errors = []
         for i,RT in enumerate(Extrinsics):

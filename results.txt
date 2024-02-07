@@ -1,19 +1,15 @@
-Initially estimated K matrix : 
- [[ 2.056107e+03 -1.017000e+00  7.616550e+02]
- [ 0.000000e+00  2.040504e+03  1.351308e+03]
- [ 0.000000e+00  0.000000e+00  1.000000e+00]]
+Distortion Coordinates(kC) before optimization: (0, 0)
+Projection error before optimization: 0.7201492174873587 (without using cv2 function)
+Projection error before optimization: 0.7201488559029081 (using cv2 function)
 
-Distortion Coordinates before optimization: [0 0]
-Projection error before optimization : 837.6212
+K before optimization: [[ 2.05610659e+03 -1.01709784e+00  7.61655247e+02]
+ [ 0.00000000e+00  2.04050404e+03  1.35130849e+03]
+ [ 0.00000000e+00  0.00000000e+00  1.00000000e+00]]
 
+Distortion Coordinates after optimization: (0.01272755043233208, -0.09773893429297463)
+Projection error after optimization: 0.7061389951167217 (using cv2 function)
+Projection error after optimization: 0.7061400154376088 (without using cv2 function)
 
-optimized K matrix : 
- [[ 1.785430e+03 -1.017000e+00  1.073608e+03]
- [ 0.000000e+00  1.729229e+03  8.316140e+02]
- [ 0.000000e+00  0.000000e+00  1.000000e+00]]
-
-Distortion Coordinates after optimization: [0. 0.]
-Projection error after optimization : 837.6212
-
-
-##################################################################
+K after optimization: [[ 2.05610227e+03 -1.01709784e+00  7.61713151e+02]
+ [ 0.00000000e+00  2.04049566e+03  1.35131937e+03]
+ [ 0.00000000e+00  0.00000000e+00  1.00000000e+00]]

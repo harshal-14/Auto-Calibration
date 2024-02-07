@@ -100,14 +100,14 @@ class Calibration:
         print("Projection error after optimization:", reprojection_error2, "(using cv2 function)")
         print(f'Projection error after optimization: {reprojection_error}', '(without using cv2 function)')
         print(f'K after optimization: {K}')
-        self.image_utils.rectify(im_paths, np.array(m_pts), np.array(m_pts_), self.save_path)
+        self.image_utils.rectify(im_paths, np.array(m_pts), np.array(m_pts_), K_init, K, kC, self.save_path)
         print(f'Done! Rectified images saved at: {self.save_path}')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--InputDataPath', default="/home/lucifer/WPI/Spring_courses/CV/hbhat_hw1/Data/Calibration_Imgs/", help='Data path of images')
-    parser.add_argument('--OutputPath', default='/home/lucifer/WPI/Spring_courses/CV/hbhat_hw1/Data/Outputs/', help='Path to save Results')
+    parser.add_argument('--OutputPath', default="/home/lucifer/WPI/Spring_courses/CV/hbhat_hw1/Data/Outputs/", help='Path to save Results')
     
     args = parser.parse_args()
     
